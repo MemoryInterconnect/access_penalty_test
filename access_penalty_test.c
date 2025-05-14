@@ -73,7 +73,7 @@ int main(int argc, char ** argv) {
     total_latency = 0;
     min = max = 0;
     for (i=0; i<loop; i++) {
-	    temp = check_mem_latency(meca_buf, test_size, stride);
+	    temp = check_mem_latency(meca_buf, test_size, 8);
 	    printf ("%d: %.2lf\n", i+1, temp);
 	    total_latency += temp;
 	    if ( i == 0 ) min = max = temp;
