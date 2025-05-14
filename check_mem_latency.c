@@ -72,7 +72,6 @@ void prepare_mem_for_latency_test(void *buf, long size, long stride)
     long ways = 4;		//cache ways
     uintptr_t *bigarray = (uintptr_t *) buf;;
     long i, j, n, delta;
-    long sum, sum2;
     uintptr_t *x = &bigarray[0];
 
     test_size = test_range;
@@ -107,7 +106,7 @@ double check_mem_latency(void *buf, long size, long stride)
     long test_range = size;
     long ways = 4;		//cache ways
     uintptr_t *bigarray = (uintptr_t *) buf;;
-    long i, j, n, delta;
+    long i, n, delta;
     long sum, sum2;
     uintptr_t *x = &bigarray[0];
 
@@ -120,6 +119,7 @@ double check_mem_latency(void *buf, long size, long stride)
     n = (((test_size / stride) * ways + (CHASE_STEPS - 1)) / CHASE_STEPS);
     if (n < 5)
 	n = 5;			// enough to compute variance to within 50% = 1/sqrt(n-1)
+    n = 4096;
 
     // Perform iterations for real
     sum = 0;

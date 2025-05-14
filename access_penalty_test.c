@@ -38,10 +38,9 @@ int main(int argc, char ** argv) {
 	    return -1;
     }
     
-    printf("Local Memory Test\n");
-
     prepare_mem_for_latency_test(local_buf, test_size, stride);
 
+    printf("Local Memory Test\n");
     total_latency = 0;
     min = max = 0;
     for (i=0; i<loop; i++) {
@@ -71,9 +70,9 @@ int main(int argc, char ** argv) {
 	    printf("MECA Memory allocation error: %s\n", strerror(errno));
 	    goto out;
     }
-
-    printf("MECA Memory Test\n");
     prepare_mem_for_latency_test(meca_buf, test_size, 8);
+
+    printf("\nMECA Memory Test (stride 8)\n");
     total_latency = 0;
     min = max = 0;
     for (i=0; i<loop; i++) {
@@ -87,12 +86,35 @@ int main(int argc, char ** argv) {
 
     meca_mem_latency = (total_latency - min - max) / (loop-2);
     printf("MECA Memory Latency: average = %.4lf usec\n", meca_mem_latency/CLOCK_PER_USEC);
+    //end of MECA memory test
+
+    //Calculate Access Penalty
+    printf("\nAccess Penalty(%%) = (meca_mem_latency - local_mem_latency) / local_mem_latency * 100\n");
+    printf("                  = %lf %%\n", (meca_mem_latency - local_mem_latency)/local_mem_latency*100);
+
+#if 0
+    printf("\nMECA Memory Test (stride 16)\n");
+    prepare_mem_for_latency_test(meca_buf, test_size, 16);
+    total_latency = 0;
+    min = max = 0;
+    for (i=0; i<loop; i++) {
+	    temp = check_mem_latency(meca_buf, test_size, 16);
+	    printf ("%d: %.2lf\n", i+1, temp);
+	    total_latency += temp;
+	    if ( i == 0 ) min = max = temp;
+	    if ( temp < min ) min = temp;
+	    if ( temp > max ) max = temp;
+    }
+
+    meca_mem_latency = (total_latency - min - max) / (loop-2);
+    printf("MECA Memory Latency: average = %.4lf usec\n", meca_mem_latency/CLOCK_PER_USEC);
+
+    //Calculate Access Penalty
+    printf("\nAccess Penalty(%%) = (meca_mem_latency - local_mem_latency) / local_mem_latency * 100\n");
+    printf("                  = %lf %%\n", (meca_mem_latency - local_mem_latency)/local_mem_latency*100);
+#endif
 
     munmap(meca_buf, test_size);
-
-//Calculate Access Penalty
-    printf("Access Penalty(%%) = (meca_mem_latency - local_mem_latency) / local_mem_latency * 100\n");
-    printf("Access Penalty: %lf %%\n", (meca_mem_latency - local_mem_latency)/local_mem_latency*100);
 
 out:
     close(fd);
