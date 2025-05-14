@@ -39,6 +39,9 @@ int main(int argc, char ** argv) {
     }
     
     printf("Local Memory Test\n");
+
+    prepare_mem_for_latency_test(local_buf, test_size, stride);
+
     total_latency = 0;
     min = max = 0;
     for (i=0; i<loop; i++) {
@@ -70,6 +73,7 @@ int main(int argc, char ** argv) {
     }
 
     printf("MECA Memory Test\n");
+    prepare_mem_for_latency_test(meca_buf, test_size, 8);
     total_latency = 0;
     min = max = 0;
     for (i=0; i<loop; i++) {
