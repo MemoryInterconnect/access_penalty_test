@@ -118,7 +118,7 @@ double check_mem_latency(void *buf, long size, long stride)
     // We also need to divide by CHASE_STEPS to scale the result.
     double varDelta = (1.0 * sum2 - 1.0 * sum * sum / n) / (n - 1);
     double var = varDelta / sqrt(CHASE_STEPS);
-    printf("%ld %.3lf %.3lf %ld\n", test_size, mean, sqrt(var), n);
+//    printf("%ld %.3lf %.3lf %ld\n", test_size, mean, sqrt(var), n);
 
     // return mean latency clocks
     return mean;

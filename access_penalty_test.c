@@ -34,7 +34,7 @@ int main(int argc, char ** argv) {
     min = max = 0;
     for (i=0; i<loop; i++) {
 	    temp = check_mem_latency(local_buf, test_size, stride);
-	    printf ("%d: %.2lf\n", i, temp);
+	    printf ("%d: %.2lf\n", i+1, temp);
 	    total_latency += temp;
 	    if ( i == 0 ) min = max = temp;
 	    if ( temp < min ) min = temp;
