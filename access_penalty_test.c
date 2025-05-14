@@ -86,8 +86,12 @@ int main(int argc, char ** argv) {
 
     munmap(meca_buf, test_size);
 
+//Calculate Access Penalty
+    printf("Access Penalty(%%) = (meca_mem_latency - local_mem_latency) / local_mem_latency * 100\n");
+    printf("Access Penalty: %lf %%\n", (meca_mem_latency - local_mem_latency)/local_mem_latency*100);
+
 out:
     close(fd);
-	
+
     return 0;
 }
