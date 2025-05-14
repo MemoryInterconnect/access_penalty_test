@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include "check_mem_latency.h"
 
 // Pointer chasing macros to force the loop to be unwound
 #define CHASE1(x) ((uintptr_t *)*x)
@@ -32,7 +33,6 @@ static uintptr_t rdcycle()
 }
 #else
 #include <sys/time.h>
-#define CLOCK_PER_USEC 100 //100MHz
 static inline uintptr_t rdcycle()
 {
         struct timeval tp;
@@ -119,7 +119,6 @@ double check_mem_latency(void *buf, long size, long stride)
     double varDelta = (1.0 * sum2 - 1.0 * sum * sum / n) / (n - 1);
     double var = varDelta / sqrt(CHASE_STEPS);
     printf("%ld %.3lf %.3lf %ld\n", test_size, mean, sqrt(var), n);
-
 
     // return mean latency clocks
     return mean;
