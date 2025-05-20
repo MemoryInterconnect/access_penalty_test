@@ -56,6 +56,7 @@ int main(int argc, char **argv)
     for (i = 0; i < loop; i++) {
 	temp = check_mem_latency(&buf, test_size, stride);
 	printf("%d: %.2lf\n", i + 1, temp);
+	fflush(stdout);
 	total_latency += temp;
 	if (i == 0)
 	    min = max = temp;
@@ -96,6 +97,7 @@ int main(int argc, char **argv)
 	for (i = 0; i < loop; i++) {
 	    temp = check_mem_latency(&buf, test_size, 8);
 	    printf("%d: %.2lf\n", i + 1, temp);
+	    fflush(stdout);
 	    total_latency += temp;
 	    if (i == 0)
 		min = max = temp;
