@@ -16,6 +16,7 @@ int main(int argc, char **argv)
 {
     double local_mem_latency = 0, meca_mem_latency = 0;
     double temp, min, max, total_latency;
+    void *buf;
     void *local_buf = NULL, *meca_buf = NULL;
     long test_size = 0, stride = 0;
     size_t page_size;
@@ -51,8 +52,9 @@ int main(int argc, char **argv)
     printf("Local Memory Test\n");
     total_latency = 0;
     min = max = 0;
+    buf = local_buf;
     for (i = 0; i < loop; i++) {
-	temp = check_mem_latency(local_buf, test_size, stride);
+	temp = check_mem_latency(&buf, test_size, stride);
 	printf("%d: %.2lf\n", i + 1, temp);
 	total_latency += temp;
 	if (i == 0)
@@ -90,8 +92,9 @@ int main(int argc, char **argv)
 	printf("\nMECA Memory Test (stride 8)\n");
 	total_latency = 0;
 	min = max = 0;
+	buf = meca_buf;
 	for (i = 0; i < loop; i++) {
-	    temp = check_mem_latency(meca_buf, test_size, 8);
+	    temp = check_mem_latency(&buf, test_size, 8);
 	    printf("%d: %.2lf\n", i + 1, temp);
 	    total_latency += temp;
 	    if (i == 0)

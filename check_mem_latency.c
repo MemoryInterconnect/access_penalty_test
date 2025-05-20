@@ -55,15 +55,10 @@ uintptr_t *chase(uintptr_t * x, long *cycles)
     return out;
 }
 
-#ifndef TEST_SIZE
-#define TEST_SIZE (16*1024*1024)
-#endif
-
 // To prevent homonyms on a RISC-V for a VIPT system with virtual memory,
 // there are never any set collisions under the 4kB MMU page-size.
 // Therefore, you if accesss memory in 4kB stride, it's the same as touching
 // the memory with unit stride.
-#define STRIDE 4096
 
 void prepare_mem_for_latency_test(void *buf, long size, long stride)
 {
@@ -71,8 +66,7 @@ void prepare_mem_for_latency_test(void *buf, long size, long stride)
     long test_range = size;
     long ways = 4;		//cache ways
     uintptr_t *bigarray = (uintptr_t *) buf;;
-    long i, j, n, delta;
-    uintptr_t *x = &bigarray[0];
+    long i, j, n;
 
     test_size = test_range;
 
@@ -94,24 +88,31 @@ void prepare_mem_for_latency_test(void *buf, long size, long stride)
     if (n < 5)
 	n = 5;			// enough to compute variance to within 50% = 1/sqrt(n-1)
 
-    // Warm the cache test
-    for (i = 0; i < n; ++i)
-	x = chase(x, &delta);
 }
 
-double check_mem_latency(void *buf, long size, long stride)
+#define L2_CACHE_SIZE (512*1024)
+
+double check_mem_latency(void **buf, long size, long stride)
 {
 
     long test_size;
     long test_range = size;
     long ways = 4;		//cache ways
-    uintptr_t *bigarray = (uintptr_t *) buf;;
+    uintptr_t *bigarray = (uintptr_t *) *buf;;
     long i, n, delta;
     long sum, sum2;
     uintptr_t *x = &bigarray[0];
+    long flood_data[L2_CACHE_SIZE/sizeof(long)] = {0};
+    long temp = 0;
 
 
     test_size = test_range;
+
+    // flood L1 data cache and L2 cache for 16 times
+    for (i = 0; i < (long)(L2_CACHE_SIZE/sizeof(long)*16); i++) {
+	flood_data[i%(L2_CACHE_SIZE/sizeof(long))] = i;
+	temp += flood_data[i%(L2_CACHE_SIZE/sizeof(long))];
+    }
 
     // We need to chase the point test_size/STRIDE steps to exercise the loop.
     // Each invocation of chase performs CHASE_STEPS, so round-up the calls.
@@ -139,6 +140,7 @@ double check_mem_latency(void *buf, long size, long stride)
 //    double var = varDelta / sqrt(CHASE_STEPS);
 //    printf("%ld %.3lf %.3lf %ld\n", test_size, mean, sqrt(var), n);
 
+    *buf = (void*) x;
     // return mean latency clocks
     return mean;
 }
