@@ -1,5 +1,5 @@
-CC=riscv64-buildroot-linux-gnu-gcc
-#CC = gcc
+#CC=riscv64-buildroot-linux-gnu-gcc
+CC = gcc
 CFLAGS = -Wall -Wextra -O2 #-DUSE_RDCYCLE
 LDFLAGS = -lm -static
 TARGET = access_penalty_test

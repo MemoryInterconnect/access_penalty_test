@@ -11,6 +11,8 @@
 
 #define MECA_DEV "/dev/mem"
 #define MECA_OFFSET 0x200000000UL
+//#define MECA_DEV "./mem"
+//#define MECA_OFFSET 0x0UL
 
 int main(int argc, char **argv)
 {
@@ -75,7 +77,7 @@ int main(int argc, char **argv)
 
     if (skip_meca_test == 0) {
 	//Allocate MECA memory for latency test
-	fd = open("/dev/mem", O_RDWR);
+	fd = open(MECA_DEV, O_RDWR);
 	if (fd < 0) {
 	    printf("MECA device open error: %s\n", strerror(errno));
 	    return -1;
@@ -90,7 +92,7 @@ int main(int argc, char **argv)
 	}
 	prepare_mem_for_latency_test(meca_buf, test_size, 8);
 
-	printf("\nMECA Memory Test (stride 8)\n");
+	printf("\nMECA Memory Test\n");
 	total_latency = 0;
 	min = max = 0;
 	buf = meca_buf;
