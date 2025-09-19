@@ -76,6 +76,7 @@ int main(int argc, char **argv)
     //end of Local memory test
 
     if (skip_meca_test == 0) {
+//	stride = 8;
 	//Allocate MECA memory for latency test
 	fd = open(MECA_DEV, O_RDWR);
 	if (fd < 0) {
@@ -90,14 +91,14 @@ int main(int argc, char **argv)
 	    printf("MECA Memory allocation error: %s\n", strerror(errno));
 	    goto out;
 	}
-	prepare_mem_for_latency_test(meca_buf, test_size, 8);
+	prepare_mem_for_latency_test(meca_buf, test_size, stride);
 
 	printf("\nMECA Memory Test\n");
 	total_latency = 0;
 	min = max = 0;
 	buf = meca_buf;
 	for (i = 0; i < loop; i++) {
-	    temp = check_mem_latency(&buf, test_size, 8);
+	    temp = check_mem_latency(&buf, test_size, stride);
 	    printf("%d: %.2lf\n", i + 1, temp);
 	    fflush(stdout);
 	    total_latency += temp;
