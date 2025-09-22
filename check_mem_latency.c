@@ -151,7 +151,13 @@ void prepare_mem_for_latency_test_fullrandom(void *buf, long size, long orig_str
 	//random stride(position)
 	stride = (rand()%(size/sizeof(uintptr_t)))*sizeof(uintptr_t);
 
-	if ( bigarray[stride / sizeof(uintptr_t)] != (uintptr_t) 0 ) continue;
+	if ( bigarray[stride / sizeof(uintptr_t)] != (uintptr_t) 0 ) {
+		//continue;
+	    do { 
+		stride+=sizeof(uintptr_t);
+		stride %= size;
+	    } while ( bigarray[stride / sizeof(uintptr_t)] != (uintptr_t) 0);
+	}
 
 	bigarray[ i / sizeof(uintptr_t)] =
 	    (uintptr_t) & bigarray[ stride / sizeof(uintptr_t)];
