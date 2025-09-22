@@ -90,14 +90,15 @@ void prepare_mem_for_latency_test(void *buf, long size, long stride)
 
 }
 
-void prepare_mem_for_latency_test_random(void *buf, long size, long stride)
+void prepare_mem_for_latency_test_random(void *buf, long size, long orig_stride)
 {
     long test_size;
     long test_range = size;
     long ways = 4;		//cache ways
     uintptr_t *bigarray = (uintptr_t *) buf;;
     long i, j, n;
-    long count = size/stride;
+    long stride;
+//    long count = size/stride;
 
     test_size = test_range;
 
@@ -105,7 +106,7 @@ void prepare_mem_for_latency_test_random(void *buf, long size, long stride)
     i = 0;
     do {
 	//random stride with sizeof(uintptr_t) aligned.
-	stride = (rand()%(stride*2/sizeof(uintptr_t)))*sizeof(uintptr_t);
+	stride = (rand()%(orig_stride*2/sizeof(uintptr_t)))*sizeof(uintptr_t);
 
 	if ( (i + stride) >= size ) j = 0;
 	else j = (i + stride) & (test_size - 1);
@@ -118,9 +119,9 @@ void prepare_mem_for_latency_test_random(void *buf, long size, long stride)
     // We need to chase the point test_size/STRIDE steps to exercise the loop.
     // Each invocation of chase performs CHASE_STEPS, so round-up the calls.
     // To warm a cache with random replacement, you need to walk it 'ways' times.
-    n = (((test_size / stride) * ways + (CHASE_STEPS - 1)) / CHASE_STEPS);
-    if (n < 5)
-	n = 5;			// enough to compute variance to within 50% = 1/sqrt(n-1)
+//    n = (((test_size / stride) * ways + (CHASE_STEPS - 1)) / CHASE_STEPS);
+//    if (n < 5)
+//	n = 5;			// enough to compute variance to within 50% = 1/sqrt(n-1)
 
 }
 
