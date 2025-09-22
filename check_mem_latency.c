@@ -157,9 +157,11 @@ void prepare_mem_for_latency_test_fullrandom(void *buf, long size, long orig_str
 	    (uintptr_t) & bigarray[ stride / sizeof(uintptr_t)];
 
 	count--;
-printf("i=%ld stride=%ld count=%ld\n", i, stride, count);
+//printf("i=%ld stride=%ld count=%ld\n", i, stride, count);
 	i = stride;
     } while (count > 0);
+    //make full loop
+    bigarray[ i / sizeof(uintptr_t)] = (uintptr_t) & bigarray[ 0 ];
 
     // We need to chase the point test_size/STRIDE steps to exercise the loop.
     // Each invocation of chase performs CHASE_STEPS, so round-up the calls.
