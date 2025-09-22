@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include "check_mem_latency.h"
+#include <time.h>
 
 // Pointer chasing macros to force the loop to be unwound
 #define CHASE1(x) ((uintptr_t *)*x)
@@ -98,11 +99,12 @@ void prepare_mem_for_latency_test_random(void *buf, long size, long orig_stride)
     uintptr_t *bigarray = (uintptr_t *) buf;;
     long i, j, n;
     long stride;
-//    long count = size/stride;
+    long count = 0;
 
     test_size = test_range;
 
     // Create a pointer loop
+    srand(time(NULL));
     i = 0;
     do {
 	//random stride with sizeof(uintptr_t) aligned.
@@ -113,6 +115,9 @@ void prepare_mem_for_latency_test_random(void *buf, long size, long orig_stride)
 
 	bigarray[i / sizeof(uintptr_t)] =
 	    (uintptr_t) & bigarray[j / sizeof(uintptr_t)];
+
+	count++;
+//printf("i=%ld stride=%ld count=%ld\n", i, stride, count);
 	i = j;
     } while (i != 0);
 
@@ -125,9 +130,49 @@ void prepare_mem_for_latency_test_random(void *buf, long size, long orig_stride)
 
 }
 
+void prepare_mem_for_latency_test_fullrandom(void *buf, long size, long orig_stride)
+{
+    long test_size;
+    long test_range = size;
+    long ways = 4;		//cache ways
+    uintptr_t *bigarray = (uintptr_t *) buf;;
+    long i, j, n;
+    long stride;
+    long count = size/orig_stride;
+
+    test_size = test_range;
+
+    bzero(buf, size);
+
+    // Create a pointer loop
+    srand(time(NULL));
+    i = 0;
+    do {
+	//random stride(position)
+	stride = (rand()%(size/sizeof(uintptr_t)))*sizeof(uintptr_t);
+
+	if ( bigarray[stride / sizeof(uintptr_t)] != (uintptr_t) 0 ) continue;
+
+	bigarray[ i / sizeof(uintptr_t)] =
+	    (uintptr_t) & bigarray[ stride / sizeof(uintptr_t)];
+
+	count--;
+printf("i=%ld stride=%ld count=%ld\n", i, stride, count);
+	i = stride;
+    } while (count > 0);
+
+    // We need to chase the point test_size/STRIDE steps to exercise the loop.
+    // Each invocation of chase performs CHASE_STEPS, so round-up the calls.
+    // To warm a cache with random replacement, you need to walk it 'ways' times.
+//    n = (((test_size / stride) * ways + (CHASE_STEPS - 1)) / CHASE_STEPS);
+//    if (n < 5)
+//	n = 5;			// enough to compute variance to within 50% = 1/sqrt(n-1)
+
+}
 
 
-#define L2_CACHE_SIZE (512*1024)
+
+#define L2_CACHE_SIZE (128*1024)
 
 double check_mem_latency(void **buf, long size, long stride)
 {

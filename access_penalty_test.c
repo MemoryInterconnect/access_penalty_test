@@ -50,7 +50,8 @@ int main(int argc, char **argv)
     }
 
 //    prepare_mem_for_latency_test(local_buf, test_size, stride);
-    prepare_mem_for_latency_test_random(local_buf, test_size, stride);
+//      prepare_mem_for_latency_test_random(local_buf, test_size, stride);
+      prepare_mem_for_latency_test_fullrandom(local_buf, test_size, stride);
 
     printf("Local Memory Test\n");
     total_latency = 0;
@@ -93,7 +94,8 @@ int main(int argc, char **argv)
 	    goto out;
 	}
 //	prepare_mem_for_latency_test(meca_buf, test_size, stride);
-	prepare_mem_for_latency_test_random(meca_buf, test_size, stride);
+//        prepare_mem_for_latency_test_random(meca_buf, test_size, stride);
+        prepare_mem_for_latency_test_fullrandom(meca_buf, test_size, stride);
 
 	printf("\nMECA Memory Test\n");
 	total_latency = 0;
