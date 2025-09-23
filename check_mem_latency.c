@@ -91,6 +91,63 @@ void prepare_mem_for_latency_test(void *buf, long size, long stride)
 
 }
 
+void prepare_mem_for_latency_test_random_and_sequential(void *buf, long size, long orig_stride)
+{
+    long test_size;
+    long test_range = size;
+    long ways = 4;		//cache ways
+    uintptr_t *bigarray = (uintptr_t *) buf;
+    uintptr_t * last = NULL;
+    long i, j, n;
+    long stride;
+    long count = size/orig_stride;
+
+    test_size = test_range;
+
+    // Create a pointer loop
+    srand(time(NULL));
+    i = 0;
+    
+    stride = 0;
+    for(i = 0; i< orig_stride; i+=sizeof(uintptr_t)) {
+	bigarray[(stride + i) / sizeof(uintptr_t)] = 
+			(uintptr_t) & bigarray[(stride + i + sizeof(uintptr_t))/sizeof(uintptr_t)];
+	last = & bigarray[(stride + i) / sizeof(uintptr_t)];
+    }
+    count--;
+
+    do {
+	//random stride with orig_stride aligned.
+	stride = (rand()%(size/orig_stride))*orig_stride;
+
+	if ( bigarray[stride / sizeof(uintptr_t)] != (uintptr_t) 0 ) {
+	    do { 
+		stride+=orig_stride;
+		stride %= size;
+	    } while ( bigarray[stride / sizeof(uintptr_t)] != (uintptr_t) 0);
+	}
+	
+	//make sequential access part
+	*last = (uintptr_t) & bigarray[(stride) / sizeof(uintptr_t)];
+	for(i = 0; i< orig_stride; i+=sizeof(uintptr_t)) {
+		bigarray[(stride + i) / sizeof(uintptr_t)] = 
+			(uintptr_t) & bigarray[(stride + i + sizeof(uintptr_t))/sizeof(uintptr_t)];
+		last = & bigarray[(stride + i) / sizeof(uintptr_t)];
+	}
+	
+	count--;
+//printf("i=%ld stride=%ld count=%ld\n", i, stride, count);
+    } while (count > 0);
+
+    // We need to chase the point test_size/STRIDE steps to exercise the loop.
+    // Each invocation of chase performs CHASE_STEPS, so round-up the calls.
+    // To warm a cache with random replacement, you need to walk it 'ways' times.
+//    n = (((test_size / stride) * ways + (CHASE_STEPS - 1)) / CHASE_STEPS);
+//    if (n < 5)
+//	n = 5;			// enough to compute variance to within 50% = 1/sqrt(n-1)
+
+}
+
 void prepare_mem_for_latency_test_random(void *buf, long size, long orig_stride)
 {
     long test_size;
