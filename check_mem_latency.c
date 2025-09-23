@@ -105,23 +105,30 @@ void prepare_mem_for_latency_test_random_and_sequential(void *buf, long size, lo
     test_size = test_range;
 
     // Create a pointer loop
+    bzero(buf, size);
     srand(time(NULL));
     i = 0;
     
     stride = 0;
-    for(i = 0; i< orig_stride; i+=sizeof(uintptr_t)) {
-	bigarray[(stride + i) / sizeof(uintptr_t)] = 
-			(uintptr_t) & bigarray[(stride + i + sizeof(uintptr_t))/sizeof(uintptr_t)];
-	last = & bigarray[(stride + i) / sizeof(uintptr_t)];
-    }
-    count--;
 
     do {
+    	for(i = 0; i< orig_stride; i+=sizeof(uintptr_t)) {
+		bigarray[(stride + i) / sizeof(uintptr_t)] = 
+			(uintptr_t) & bigarray[(stride + i + sizeof(uintptr_t))/sizeof(uintptr_t)];
+		last = & bigarray[(stride + i) / sizeof(uintptr_t)];
+//printf("count=%d where=%lx data=%lx i=%ld i+sizeof(uintptr_t)=%ld orig_stride=%ld\n", count, &bigarray[(stride + i) / sizeof(uintptr_t)], bigarray[(stride + i) / sizeof(uintptr_t)], i, i+sizeof(uintptr_t), orig_stride);
+    	}
+
+	count--;
+
+	if (count <= 0 ) break;
+
 	//random stride with orig_stride aligned.
 	stride = (rand()%(size/orig_stride))*orig_stride;
 
 	if ( bigarray[stride / sizeof(uintptr_t)] != (uintptr_t) 0 ) {
 	    do { 
+//printf("%d stride=%ld data=%lx\n", __LINE__, stride, bigarray[stride / sizeof(uintptr_t)]);
 		stride+=orig_stride;
 		stride %= size;
 	    } while ( bigarray[stride / sizeof(uintptr_t)] != (uintptr_t) 0);
@@ -129,15 +136,12 @@ void prepare_mem_for_latency_test_random_and_sequential(void *buf, long size, lo
 	
 	//make sequential access part
 	*last = (uintptr_t) & bigarray[(stride) / sizeof(uintptr_t)];
-	for(i = 0; i< orig_stride; i+=sizeof(uintptr_t)) {
-		bigarray[(stride + i) / sizeof(uintptr_t)] = 
-			(uintptr_t) & bigarray[(stride + i + sizeof(uintptr_t))/sizeof(uintptr_t)];
-		last = & bigarray[(stride + i) / sizeof(uintptr_t)];
-	}
 	
-	count--;
-//printf("i=%ld stride=%ld count=%ld\n", i, stride, count);
+//printf("%d count=%d where=%lx data=%lx\n", __LINE__, count, last, *last);
     } while (count > 0);
+
+    *last = (uintptr_t) & bigarray[ 0 ];
+//printf("%d where=%lx data=%lx\n", __LINE__, last, *last);
 
     // We need to chase the point test_size/STRIDE steps to exercise the loop.
     // Each invocation of chase performs CHASE_STEPS, so round-up the calls.
