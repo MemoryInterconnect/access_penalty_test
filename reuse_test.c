@@ -9,6 +9,10 @@
 #include <time.h>
 #include <errno.h>
 //#include <x86intrin.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #ifndef likely
 #define likely(x)   __builtin_expect(!!(x),1)
@@ -23,6 +27,7 @@ typedef struct {
     size_t line_bytes;    // 캐시라인 크기 가정(기본 64)
     uint64_t iters;       // 측정 반복 횟수(접근 횟수)
     int warmup;           // 측정 전 워밍업 여부
+    int use_meca;         // MECA 메모리 사용 여부
 } config_t;
 
 static void die(const char* msg){
@@ -51,6 +56,7 @@ static void parse_args(int argc, char** argv, config_t* cfg){
     cfg->line_bytes  = 64;
     cfg->iters       = 1000000ULL;
     cfg->warmup      = 1;
+    cfg->use_meca    = 0;
 
     for(int i=1;i<argc;i++){
         if(strcmp(argv[i],"--array-bytes")==0 && i+1<argc){
@@ -65,8 +71,11 @@ static void parse_args(int argc, char** argv, config_t* cfg){
         } else if(strcmp(argv[i],"--warmup")==0 && i+1<argc){
             long long t; if(parse_arg_i(argv[++i], &t)) die("bad --warmup");
             cfg->warmup = (int)t;
+        } else if(strcmp(argv[i],"--use_meca")==0 && i+1<argc){
+            long long t; if(parse_arg_i(argv[++i], &t)) die("bad --use_meca");
+            cfg->use_meca = (int)t;
         } else if(strcmp(argv[i],"--help")==0){
-            printf("Usage: %s --reuse-bytes N [--array-bytes B] [--line-bytes L] [--iters I] [--warmup 0|1]\n", argv[0]);
+            printf("Usage: %s --reuse-bytes N [--array-bytes B] [--line-bytes L] [--iters I] [--warmup 0|1] [--use_meca 0|1]\n", argv[0]);
             exit(0);
         } else {
             fprintf(stderr, "Unknown arg: %s\n", argv[i]);
@@ -130,6 +139,9 @@ static void build_ring(size_t* idx, size_t nslots, size_t step){
     idx[i] = idx[i];
 }
 
+#define MECA_DEV "/dev/mem"
+#define MECA_OFFSET 0x200000000
+
 int main(int argc, char** argv){
     config_t cfg;
     parse_args(argc, argv, &cfg);
@@ -151,9 +163,21 @@ int main(int argc, char** argv){
 
     // 실제 데이터(읽기 전용)
     uint8_t* buf = NULL;
+    int mem_fd = -1;
 
-    buf = aligned_alloc(line, slots * line);
-    if(!buf) die("alloc buf failed");
+    if(cfg.use_meca){
+        // MECA 메모리 사용 - ./mem 파일을 mmap
+        mem_fd = open(MECA_DEV, O_RDWR);
+        if(mem_fd == -1) die("failed to open ./mem file");
+
+        buf = (uint8_t*)mmap(NULL, slots * line, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, MECA_OFFSET);
+        if(buf == MAP_FAILED) die("mmap failed");
+    } else {
+        // 일반 메모리 할당
+        buf = aligned_alloc(line, slots * line);
+        if(!buf) die("alloc buf failed");
+    }
+
     // 터치해서 물리 페이지 확보
     for(size_t i=0;i<slots*line;i+=4096) buf[i]= (uint8_t)(i);
 
@@ -197,7 +221,14 @@ int main(int argc, char** argv){
     // anti-opt
     if(sink==42) fprintf(stderr,".\n");
     free((void*)next_idx);
-    free((void*)buf);
+
+    // 메모리 정리
+    if(cfg.use_meca){
+        munmap(buf, slots * line);
+        close(mem_fd);
+    } else {
+        free((void*)buf);
+    }
     return 0;
 }
 
