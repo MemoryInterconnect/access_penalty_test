@@ -8,7 +8,7 @@
 #include <string.h>
 #include <time.h>
 #include <errno.h>
-#include <x86intrin.h>
+//#include <x86intrin.h>
 
 #ifndef likely
 #define likely(x)   __builtin_expect(!!(x),1)
@@ -82,6 +82,7 @@ static void parse_args(int argc, char** argv, config_t* cfg){
     }
 }
 
+#if 0
 // x86_64 rdtsc helpers
 #if defined(__x86_64__) || defined(_M_X64)
 static inline uint64_t rdtsc_begin(void){
@@ -102,6 +103,9 @@ static inline uint64_t rdtsc_end(void){
 #else
 #define USE_TSC 0
 #endif
+#endif
+
+#define USE_TSC 0
 
 static inline uint64_t nsec_now(void){
     struct timespec ts;
@@ -147,11 +151,8 @@ int main(int argc, char** argv){
 
     // 실제 데이터(읽기 전용)
     uint8_t* buf = NULL;
-#if defined(_ISOC11_SOURCE)
+
     buf = aligned_alloc(line, slots * line);
-#else
-    posix_memalign((void**)&buf, line, slots * line);
-#endif
     if(!buf) die("alloc buf failed");
     // 터치해서 물리 페이지 확보
     for(size_t i=0;i<slots*line;i+=4096) buf[i]= (uint8_t)(i);
@@ -168,7 +169,7 @@ int main(int argc, char** argv){
     }
 
     uint64_t begin=0, end=0;
-    if(USE_TSC){
+/*    if(USE_TSC){
         begin = rdtsc_begin();
         size_t p=0;
         for(uint64_t i=0;i<cfg.iters;i++){
@@ -179,7 +180,8 @@ int main(int argc, char** argv){
         double avg_cycles = (double)(end - begin) / (double)cfg.iters;
         // CSV: reuse_bytes,avg_cycles,iters
         printf("%zu,%.3f,%llu\n", cfg.reuse_bytes, avg_cycles, (unsigned long long)cfg.iters);
-    } else {
+    } else */
+	{
         begin = nsec_now();
         size_t p=0;
         for(uint64_t i=0;i<cfg.iters;i++){
@@ -189,7 +191,7 @@ int main(int argc, char** argv){
         end = nsec_now();
         double avg_ns = (double)(end - begin) / (double)cfg.iters;
         // CSV: reuse_bytes,avg_ns,iters
-        printf("%zu,%.3f,%llu\n", cfg.reuse_bytes, avg_ns, (unsigned long long)cfg.iters);
+        printf("%zu bytes %.3f ns %llu times\n", cfg.reuse_bytes, avg_ns, (unsigned long long)cfg.iters);
     }
 
     // anti-opt

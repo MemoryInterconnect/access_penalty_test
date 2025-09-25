@@ -14,7 +14,7 @@ $(TARGET1): $(OBJ)
 	$(CC) $(CFLAGS) -o $(TARGET1) $(OBJ) $(LDFLAGS)
 
 $(TARGET2): $(SRC2)
-	$(CC) $(CFLAGS) -march=native -o $(TARGET2) $(SRC2)
+	$(CC) $(CFLAGS) -o $(TARGET2) $(SRC2)
 
 
 %.o: %.c
