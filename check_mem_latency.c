@@ -93,16 +93,11 @@ void prepare_mem_for_latency_test(void *buf, long size, long stride)
 
 void prepare_mem_for_latency_test_random_and_sequential(void *buf, long size, long orig_stride)
 {
-    long test_size;
-    long test_range = size;
-    long ways = 4;		//cache ways
     uintptr_t *bigarray = (uintptr_t *) buf;
     uintptr_t * last = NULL;
-    long i, j, n;
+    long i;
     long stride;
     long count = size/orig_stride;
-
-    test_size = test_range;
 
     // Create a pointer loop
     bzero(buf, size);
@@ -156,9 +151,8 @@ void prepare_mem_for_latency_test_random(void *buf, long size, long orig_stride)
 {
     long test_size;
     long test_range = size;
-    long ways = 4;		//cache ways
     uintptr_t *bigarray = (uintptr_t *) buf;;
-    long i, j, n;
+    long i, j;
     long stride;
     long count = 0;
 
@@ -193,15 +187,10 @@ void prepare_mem_for_latency_test_random(void *buf, long size, long orig_stride)
 
 void prepare_mem_for_latency_test_fullrandom(void *buf, long size, long orig_stride)
 {
-    long test_size;
-    long test_range = size;
-    long ways = 4;		//cache ways
     uintptr_t *bigarray = (uintptr_t *) buf;;
-    long i, j, n;
+    long i;
     long stride;
     long count = size/orig_stride;
-
-    test_size = test_range;
 
     bzero(buf, size);
 
