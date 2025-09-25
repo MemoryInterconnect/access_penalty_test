@@ -146,6 +146,27 @@ static void build_reuse_pattern(size_t* idx, size_t nslots, size_t reuse_slots){
     }
 }
 
+#ifdef USE_RDCYCLE
+static uintptr_t rdcycle()
+{
+    uintptr_t out;
+    __asm__ __volatile__("rdcycle %0":"=r"(out));
+    return out;
+}
+#else
+#include <sys/time.h>
+#define CLOCK_PER_USEC 100 //100MHz
+static inline uintptr_t rdcycle()
+{
+        struct timeval tp;
+        struct timezone tzp;
+        double usec;
+        gettimeofday(&tp,&tzp);
+        usec = tp.tv_sec*1000000 + tp.tv_usec;
+        return usec * CLOCK_PER_USEC;
+}
+#endif
+
 #define MECA_DEV "/dev/mem"
 #define MECA_OFFSET 0x200000000UL
 
@@ -195,7 +216,8 @@ int main(int argc, char** argv){
         }
     }
 
-    uint64_t begin=0, end=0;
+//    uint64_t begin=0, end=0;
+    uintptr_t begin, end;
 /*    if(USE_TSC){
         begin = rdtsc_begin();
         size_t p=0;
@@ -209,16 +231,18 @@ int main(int argc, char** argv){
         printf("%zu,%.3f,%llu\n", cfg.reuse_bytes, avg_cycles, (unsigned long long)cfg.iters);
     } else */
 	{
-        begin = nsec_now();
+//        begin = nsec_now();
+	begin = rdcycle();
         size_t p=0;
         for(uint64_t i=0;i<cfg.iters;i++){
             sink += buf[p*line];
             p = next_idx[p];
         }
-        end = nsec_now();
+//        end = nsec_now();
+	end = rdcycle();
         double avg_ns = (double)(end - begin) / (double)cfg.iters;
         // CSV: reuse_bytes,avg_ns,iters
-        printf("%zu bytes %.3f ns %llu times\n", cfg.reuse_bytes, avg_ns, (unsigned long long)cfg.iters);
+        printf("%zu bytes %.3f cycle %llu times\n", cfg.reuse_bytes, avg_ns, (unsigned long long)cfg.iters);
     }
 
     // anti-opt
