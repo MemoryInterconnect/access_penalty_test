@@ -126,21 +126,28 @@ static inline uint64_t nsec_now(void){
     return (uint64_t)ts.tv_sec*1000000000ull + (uint64_t)ts.tv_nsec;
 }
 
-// 순환 포인터 체이싱 테이블을 생성: 마지막 접근으로부터 'reuse_bytes' 떨어진 위치를 다시 만나게 만듦
-static void build_ring(size_t* idx, size_t nslots, size_t step){
-    // step은 라인 단위 이동; 서로소면 전 슬롯을 방문
-    size_t i=0;
-    for(size_t k=0;k<nslots;k++){
-        size_t nxt = (i + step) % nslots;
-        idx[i] = nxt;
-        i = nxt;
+// 정확한 reuse distance를 위한 접근 패턴 생성
+// reuse_slots개의 서로 다른 cache line을 순차적으로 접근한 후 처음으로 돌아감
+static void build_reuse_pattern(size_t* idx, size_t nslots, size_t reuse_slots){
+    // reuse_slots보다 큰 배열이어야 함
+    if(nslots < reuse_slots + 1){
+        fprintf(stderr, "Array too small for requested reuse distance\n");
+        exit(1);
     }
-    // 시작점으로 닫혀 있는지 보장
-    idx[i] = idx[i];
+
+    // 0 -> 1 -> 2 -> ... -> reuse_slots-1 -> 0 패턴 생성
+    for(size_t i = 0; i < reuse_slots; i++){
+        idx[i] = (i + 1) % reuse_slots;
+    }
+
+    // 나머지 슬롯들은 사용하지 않음 (정확한 reuse distance를 위해)
+    for(size_t i = reuse_slots; i < nslots; i++){
+        idx[i] = i; // 자기 자신을 가리켜 사용하지 않음을 표시
+    }
 }
 
 #define MECA_DEV "/dev/mem"
-#define MECA_OFFSET 0x200000000
+#define MECA_OFFSET 0x200000000UL
 
 int main(int argc, char** argv){
     config_t cfg;
@@ -151,27 +158,23 @@ int main(int argc, char** argv){
     const size_t reuse_slots = cfg.reuse_bytes / line;
     if(reuse_slots==0) die("reuse-bytes too small relative to line-bytes");
 
-    // 접근 패턴: 현재 슬롯에서 'reuse_slots'만큼 떨어진 슬롯으로 점프하는 고정 스텝 순환
-    size_t step = reuse_slots;
-    // step과 slots가 서로소가 아니면 전 영역을 못 돌 수 있어, 간단히 보정
-    // (서로소 보장을 위해 step을 홀수로 조정)
-    if(step % 2 == 0) step += 1;
-    // 인덱스 링 구성
+    // 정확한 reuse distance 테스트를 위한 패턴 구성
+    // reuse_slots개의 서로 다른 cache line을 순환 접근
     size_t* next_idx = (size_t*)aligned_alloc(line, slots * sizeof(size_t));
     if(!next_idx) die("alloc next_idx failed");
-    build_ring(next_idx, slots, step);
+    build_reuse_pattern(next_idx, slots, reuse_slots);
 
     // 실제 데이터(읽기 전용)
     uint8_t* buf = NULL;
     int mem_fd = -1;
 
     if(cfg.use_meca){
-        // MECA 메모리 사용 - ./mem 파일을 mmap
-        mem_fd = open(MECA_DEV, O_RDWR);
-        if(mem_fd == -1) die("failed to open ./mem file");
+        // MECA 메모리 사용 - /dev/mem을 통해 MECA 영역에 접근
+        mem_fd = open(MECA_DEV, O_RDWR | O_SYNC);
+        if(mem_fd == -1) die("failed to open /dev/mem (need root privileges)");
 
         buf = (uint8_t*)mmap(NULL, slots * line, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, MECA_OFFSET);
-        if(buf == MAP_FAILED) die("mmap failed");
+        if(buf == MAP_FAILED) die("mmap failed on MECA memory region");
     } else {
         // 일반 메모리 할당
         buf = aligned_alloc(line, slots * line);
