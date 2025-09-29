@@ -129,12 +129,15 @@ static inline uint64_t nsec_now(void){
 // 정확한 reuse distance를 위한 접근 패턴 생성
 // reuse_slots개의 서로 다른 cache line을 순차적으로 접근한 후 처음으로 돌아감
 static void build_reuse_pattern(size_t* idx, size_t nslots, size_t reuse_slots){
+    
+    size_t stride = nslots/reuse_slots;
+
     // reuse_slots보다 큰 배열이어야 함
     if(nslots < reuse_slots + 1){
         fprintf(stderr, "Array too small for requested reuse distance\n");
         exit(1);
     }
-
+#if 0
     // 0 -> 1 -> 2 -> ... -> reuse_slots-1 -> 0 패턴 생성
     for(size_t i = 0; i < reuse_slots; i++){
         idx[i] = (i + 1) % reuse_slots;
@@ -144,6 +147,17 @@ static void build_reuse_pattern(size_t* idx, size_t nslots, size_t reuse_slots){
     for(size_t i = reuse_slots; i < nslots; i++){
         idx[i] = i; // 자기 자신을 가리켜 사용하지 않음을 표시
     }
+#else
+    // initialize slots with 0
+    for(size_t i = 0; i < nslots; i++){
+        idx[i] = i; // 자기 자신을 가리켜 사용하지 않음을 표시
+    }
+
+    // 0 -> 1 -> 2 -> ... -> reuse_slots-1 -> 0 패턴 생성
+    for(size_t i = 0; i < nslots; i+= stride){
+        idx[i] = (i + stride) % nslots;
+    }
+#endif
 }
 
 #ifdef USE_RDCYCLE
@@ -234,13 +248,14 @@ int main(int argc, char** argv){
 //        begin = nsec_now();
 	begin = rdcycle();
         size_t p=0;
-        for(uint64_t i=0;i<cfg.iters;i++){
+//        for(uint64_t i=0;i<cfg.iters;i++){
+        for(uint64_t i=0;i<(reuse_slots*cfg.iters); i++){
             sink += buf[p*line];
             p = next_idx[p];
         }
 //        end = nsec_now();
 	end = rdcycle();
-        double avg_ns = (double)(end - begin) / (double)cfg.iters;
+        double avg_ns = (double)(end - begin) / (double)(cfg.iters * reuse_slots);
         // CSV: reuse_bytes,avg_ns,iters
         printf("%zu bytes %.3f cycle %llu times\n", cfg.reuse_bytes, avg_ns, (unsigned long long)cfg.iters);
     }
