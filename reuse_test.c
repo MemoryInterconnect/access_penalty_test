@@ -152,10 +152,11 @@ static void build_reuse_pattern(size_t* idx, size_t nslots, size_t reuse_slots){
     for(size_t i = 0; i < nslots; i++){
         idx[i] = i; // 자기 자신을 가리켜 사용하지 않음을 표시
     }
-
+//printf("nslots=%ld reuse_slots=%ld stride=%ld\n", nslots, reuse_slots, stride);
     // 0 -> 1 -> 2 -> ... -> reuse_slots-1 -> 0 패턴 생성
     for(size_t i = 0; i < nslots; i+= stride){
         idx[i] = (i + stride) % nslots;
+//printf("idx[%ld] = %ld\n", i, idx[i]);
     }
 #endif
 }
@@ -251,6 +252,7 @@ int main(int argc, char** argv){
 //        for(uint64_t i=0;i<cfg.iters;i++){
         for(uint64_t i=0;i<(reuse_slots*cfg.iters); i++){
             sink += buf[p*line];
+//printf("i=%ld p=%ld\n", i, p); 
             p = next_idx[p];
         }
 //        end = nsec_now();
